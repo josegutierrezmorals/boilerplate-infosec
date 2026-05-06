@@ -5,6 +5,10 @@
 
 var express = require("express");
 var app = express();
+
+// IMPORTANTE: Cargamos tu app primero para que Helmet proteja todo
+var main = require("./myApp.js");
+
 app.disable("x-powered-by");
 var fs = require("fs");
 var path = require("path");
@@ -15,9 +19,11 @@ app.use(function (req, res, next) {
     "Access-Control-Allow-Headers":
       "Origin, X-Requested-With, content-type, Accept",
   });
-  app.disable("x-powered-by");
   next();
 });
+
+// APLICAMOS TU CONFIGURACIÓN DE HELMET AQUÍ
+app.use(main);
 
 app.get("/file/*?", function (req, res, next) {
   if (req.params[0] === ".env") {
@@ -31,18 +37,14 @@ app.get("/file/*?", function (req, res, next) {
   });
 });
 
-var main = require("./myApp.js");
 app.get("/app-info", function (req, res) {
-  // list middlewares mounted on the '/' camper's app
   var appMainRouteStack = main._router.stack
     .filter((s) => s.path === "")
     .map((l) => l.name)
-    // filter out express default middlewares
     .filter(
       (n) => !(n === "query" || n === "expressInit" || n === "serveStatic")
     );
 
-  // filter out CORS Headers
   var hs = Object.keys(res.getHeaders()).filter(
     (h) => !h.match(/^access-control-\w+/)
   );
@@ -61,15 +63,12 @@ app.get("/package.json", function (req, res, next) {
   });
 });
 
-// MONTA EL APP DE USUARIO (myApp.js)
-app.use("/", main);
-
 app.use(function (req, res, next) {
   res.status(404).type("txt").send("Not Found");
 });
 
 /********************************************
- * BLOQUE DE ARRANQUE (NECESARIO PARA RENDER)
+ * BLOQUE DE ARRANQUE PARA RENDER
  ********************************************/
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
