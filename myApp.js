@@ -2,25 +2,24 @@ const express = require('express');
 const helmet = require('helmet');
 const app = express();
 
-/**
- * CONFIGURACIÓN DE SEGURIDAD (Helmet)
- * Estos middlewares deben ir antes de cualquier ruta
- */
-
-// 1. Ocultar la cabecera X-Powered-By
+// Helmet middlewares — deben ir antes de cualquier ruta
 app.use(helmet.hidePoweredBy());
-
-// 2. Prevenir Clickjacking con Frameguard
 app.use(helmet.frameguard({ action: 'deny' }));
+app.use(helmet.xssFilter());
+app.use(helmet.noSniff());
+app.use(helmet.ieNoOpen());
+app.use(helmet.hsts({ maxAge: 90 * 24 * 60 * 60, force: true }));
+app.use(helmet.dnsPrefetchControl());
+app.use(helmet.noCache());
+app.use(helmet.contentSecurityPolicy({
+  directives: { defaultSrc: ["'self'"] }
+}));
 
-/**
- * RUTAS Y ARCHIVOS ESTÁTICOS
- */
+// Archivos estáticos y rutas
 app.use(express.static('public'));
 
-app.get("/", function (request, response) {
-  response.sendFile(__dirname + '/views/index.html');
+app.get('/', function (req, res) {
+  res.sendFile(__dirname + '/views/index.html');
 });
 
-// Exportamos la configuración para que server.js la use
 module.exports = app;
