@@ -12,7 +12,10 @@ app.use(helmet.hsts({ maxAge: 90 * 24 * 60 * 60, force: true }));
 app.use(helmet.dnsPrefetchControl());
 app.use(helmet.noCache());
 app.use(helmet.contentSecurityPolicy({
-  directives: { defaultSrc: ["'self'"] }
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", 'trusted-cdn.com']
+  }
 }));
 
 // Archivos estáticos y rutas
