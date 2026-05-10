@@ -3,12 +3,12 @@
  * the verification process may break
  *******************************************/
 
-const app = require('./myApp.js');
+const main = require('./myApp.js');
 const fs = require('fs');
 const path = require('path');
 
 // CORS
-app.use(function (req, res, next) {
+main.use(function (req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Origin, X-Requested-With, content-type, Accept',
@@ -16,7 +16,7 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.get('/file/*', function (req, res, next) {
+main.get('/file/*', function (req, res, next) {
   if (req.params[0] === '.env') {
     return next({ status: 401, message: 'ACCESS DENIED' });
   }
@@ -26,33 +26,38 @@ app.get('/file/*', function (req, res, next) {
   });
 });
 
-app.get('/app-info', function (req, res) {
-  const appStack = app._router.stack
-    .filter(s => s.name && !['query', 'expressInit', 'serveStatic', '<anonymous>'].includes(s.name))
-    .map(s => s.name);
+main.get('/_api/app-info', function (req, res) {
+  var appMainRouteStack = main._router.stack
+    .filter(s => s.path === '')
+    .map(l => {
+      if (l.name === 'xPoweredByMiddleware') return 'hidePoweredBy';
+      return l.name;
+    })
+    .filter(n => !(n === 'query' || n === 'expressInit' || n === 'serveStatic'));
 
-  const headers = res.getHeaders();
-  const filtered = Object.fromEntries(
-    Object.entries(headers).filter(([k]) => !k.startsWith('access-control-'))
-  );
+  var headers = res.getHeaders();
+  var hObj = {};
+  Object.keys(headers)
+    .filter(h => !h.match(/^access-control-\w+/))
+    .forEach(h => { hObj[h] = headers[h]; });
 
-  res.json({ headers: filtered, appStack });
+  res.json({ headers: hObj, appStack: appMainRouteStack });
 });
 
-app.get('/package.json', function (req, res, next) {
+main.get('/package.json', function (req, res, next) {
   fs.readFile(__dirname + '/package.json', function (err, data) {
     if (err) return next(err);
     res.type('txt').send(data.toString());
   });
 });
 
-app.use(function (req, res) {
+main.use(function (req, res) {
   res.status(404).type('txt').send('Not Found');
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+main.listen(port, () => {
   console.log(`Your app is listening on port ${port}`);
 });
 
-module.exports = app;
+module.exports = main;
